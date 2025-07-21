@@ -12,10 +12,10 @@
 //! ## Examples
 //!
 //! ```rust
-//! use flume_overwrite::bounded_overwrite;
+//! use flume_overwrite::bounded;
 //!
 //! // Create a channel with capacity 3
-//! let (sender, receiver) = bounded_overwrite(3);
+//! let (sender, receiver) = bounded(3);
 //!
 //! // Send messages normally when under capacity
 //! sender.send_overwrite(1).unwrap();
@@ -53,16 +53,16 @@ use std::ops::Deref;
 /// # Examples
 ///
 /// ```rust
-/// use flume_overwrite::bounded_overwrite;
+/// use flume_overwrite::bounded;
 ///
-/// let (sender, receiver) = bounded_overwrite(2);
+/// let (sender, receiver) = bounded(2);
 /// sender.send_overwrite("hello").unwrap();
 /// sender.send_overwrite("world").unwrap();
 ///
 /// assert_eq!(receiver.recv().unwrap(), "hello");
 /// assert_eq!(receiver.recv().unwrap(), "world");
 /// ```
-pub fn bounded_overwrite<T>(cap: usize) -> (OverwriteSender<T>, Receiver<T>) {
+pub fn bounded<T>(cap: usize) -> (OverwriteSender<T>, Receiver<T>) {
     let (tx, rx) = flume::bounded(cap);
     let overwrite_sender = OverwriteSender {
         sender: tx,
@@ -83,9 +83,9 @@ pub fn bounded_overwrite<T>(cap: usize) -> (OverwriteSender<T>, Receiver<T>) {
 /// # Examples
 ///
 /// ```rust
-/// use flume_overwrite::bounded_overwrite;
+/// use flume_overwrite::bounded;
 ///
-/// let (sender, receiver) = bounded_overwrite(1);
+/// let (sender, receiver) = bounded(1);
 ///
 /// // First message goes through normally
 /// sender.send_overwrite("first").unwrap();
@@ -128,9 +128,9 @@ impl<T> OverwriteSender<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use flume_overwrite::bounded_overwrite;
+    /// use flume_overwrite::bounded;
     ///
-    /// let (sender, receiver) = bounded_overwrite(2);
+    /// let (sender, receiver) = bounded(2);
     ///
     /// // Send without overwriting
     /// assert_eq!(sender.send_overwrite(1).unwrap(), None);
@@ -185,10 +185,10 @@ impl<T> OverwriteSender<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use flume_overwrite::bounded_overwrite;
+    /// use flume_overwrite::bounded;
     /// use futures::executor::block_on;
     ///
-    /// let (sender, receiver) = bounded_overwrite(1);
+    /// let (sender, receiver) = bounded(1);
     ///
     /// block_on(async {
     ///     // Send without overwriting
@@ -232,7 +232,7 @@ mod test {
 
     #[test]
     fn test_send_overwrite_under_capacity() {
-        let (sender, receiver) = bounded_overwrite(3);
+        let (sender, receiver) = bounded(3);
         assert_eq!(sender.send_overwrite(1).unwrap(), None);
         assert_eq!(sender.send_overwrite(2).unwrap(), None);
         assert_eq!(receiver.try_recv().unwrap(), 1);
@@ -241,7 +241,7 @@ mod test {
 
     #[test]
     fn test_send_overwrite_at_capacity() {
-        let (sender, receiver) = bounded_overwrite(2);
+        let (sender, receiver) = bounded(2);
         assert_eq!(sender.send_overwrite(1).unwrap(), None);
         assert_eq!(sender.send_overwrite(2).unwrap(), None);
 
@@ -253,7 +253,7 @@ mod test {
 
     #[test]
     fn test_send_overwrite_multiple_overwrites() {
-        let (sender, receiver) = bounded_overwrite(2);
+        let (sender, receiver) = bounded(2);
         assert_eq!(sender.send_overwrite(1).unwrap(), None);
         assert_eq!(sender.send_overwrite(2).unwrap(), None);
         // Fill up, then send two more, should drain two
@@ -267,7 +267,7 @@ mod test {
 
     #[test]
     fn test_send_overwrite_unbounded() {
-        let (sender, receiver) = bounded_overwrite(2);
+        let (sender, receiver) = bounded(2);
         assert_eq!(sender.send_overwrite(1).unwrap(), None);
         assert_eq!(sender.send_overwrite(2).unwrap(), None);
         assert_eq!(receiver.try_recv().unwrap(), 1);
@@ -276,7 +276,7 @@ mod test {
 
     #[test]
     fn test_send_overwrite_async_under_capacity() {
-        let (sender, receiver) = bounded_overwrite(3);
+        let (sender, receiver) = bounded(3);
         let fut = sender.send_overwrite_async(1);
         assert_eq!(block_on(fut).unwrap(), None);
         let fut = sender.send_overwrite_async(2);
@@ -287,7 +287,7 @@ mod test {
 
     #[test]
     fn test_send_overwrite_async_at_capacity() {
-        let (sender, receiver) = bounded_overwrite(2);
+        let (sender, receiver) = bounded(2);
         block_on(sender.send_overwrite_async(1)).unwrap();
         block_on(sender.send_overwrite_async(2)).unwrap();
         let drained = block_on(sender.send_overwrite_async(3)).unwrap();
@@ -298,7 +298,7 @@ mod test {
 
     #[test]
     fn test_send_overwrite_async_multiple_overwrites() {
-        let (sender, receiver) = bounded_overwrite(2);
+        let (sender, receiver) = bounded(2);
         block_on(sender.send_overwrite_async(1)).unwrap();
         block_on(sender.send_overwrite_async(2)).unwrap();
         let drained = block_on(sender.send_overwrite_async(3)).unwrap();
@@ -311,7 +311,7 @@ mod test {
 
     #[test]
     fn test_send_overwrite_async_unbounded() {
-        let (sender, receiver) = bounded_overwrite(2);
+        let (sender, receiver) = bounded(2);
         assert_eq!(block_on(sender.send_overwrite_async(1)).unwrap(), None);
         assert_eq!(block_on(sender.send_overwrite_async(2)).unwrap(), None);
         assert_eq!(block_on(receiver.recv_async()).unwrap(), 1);
@@ -320,12 +320,11 @@ mod test {
 
     #[test]
     fn test_send_overwrite_concurrent() {
-        let (sender, receiver) = bounded_overwrite(2);
+        let (sender, receiver) = bounded(2);
         let sender_clone = sender.clone();
         let handle = thread::spawn(move || {
             for i in 0..5 {
-                let drained = sender_clone.send_overwrite(i).unwrap();
-                println!("drained: {:?}", drained);
+                sender_clone.send_overwrite(i).unwrap();
                 thread::sleep(Duration::from_millis(10));
             }
         });
@@ -344,7 +343,7 @@ mod test {
     #[test]
     fn test_send_overwrite_async_concurrent() {
         use std::sync::Mutex;
-        let (sender, receiver) = bounded_overwrite(2);
+        let (sender, receiver) = bounded(2);
         let sender_clone = sender.clone();
         let received = Arc::new(Mutex::new(Vec::new()));
         let received2 = received.clone();
