@@ -6,3 +6,7 @@ description = "A library for sending values to a flume bounded channel, overwrit
 
 [dependencies]
 flume = "0.11.1"
+
+[dev-dependencies]
+futures = "0.3.31"
+futures-timer = "3.0.3"
