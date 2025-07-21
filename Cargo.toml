@@ -1,0 +1,8 @@
+[package]
+name = "flume-overwrite"
+version = "0.1.0"
+edition = "2024"
+description = "A library for sending values to a flume bounded channel, overwriting the oldest values if the channel is full."
+
+[dependencies]
+flume = "0.11.1"
